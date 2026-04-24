@@ -1,0 +1,162 @@
+/* ============================================================
+   Expand AE — Dark Cosmos Design System
+   Design: Deep navy + Instagram gradient accents
+   Fonts: Sora (display) + DM Sans (body) + JetBrains Mono (mono)
+   ============================================================ */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.09 0.02 280);
+  --foreground: oklch(0.97 0.005 280);
+  --card: oklch(0.12 0.02 280);
+  --card-foreground: oklch(0.97 0.005 280);
+  --popover: oklch(0.12 0.02 280);
+  --popover-foreground: oklch(0.97 0.005 280);
+  --primary: oklch(0.65 0.22 330);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.16 0.02 280);
+  --secondary-foreground: oklch(0.85 0.01 280);
+  --muted: oklch(0.16 0.015 280);
+  --muted-foreground: oklch(0.6 0.015 280);
+  --accent: oklch(0.18 0.025 280);
+  --accent-foreground: oklch(0.97 0.005 280);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(1 0 0 / 0.08);
+  --input: oklch(1 0 0 / 0.1);
+  --ring: oklch(0.65 0.22 330);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', sans-serif;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href] {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+  @media (min-width: 640px) {
+    .container { padding-left: 2rem; padding-right: 2rem; }
+  }
+  @media (min-width: 1024px) {
+    .container { padding-left: 3rem; padding-right: 3rem; max-width: 1200px; }
+  }
+
+  /* Instagram gradient utility */
+  .ig-gradient {
+    background: linear-gradient(135deg, #833ab4, #c13584, #e1306c, #f77737);
+  }
+  .ig-gradient-text {
+    background: linear-gradient(135deg, #c13584, #e1306c, #f77737);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .ig-gradient-border {
+    position: relative;
+    border-radius: 1rem;
+  }
+  .ig-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #833ab4, #c13584, #e1306c, #f77737);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .ig-gradient-border:hover::before {
+    opacity: 1;
+  }
+
+  /* Glass card */
+  .glass-card {
+    background: oklch(0.12 0.02 280 / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 0.08);
+    border-radius: 1rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px oklch(0 0 0 / 0.4), 0 0 30px oklch(0.65 0.22 330 / 0.1);
+    border-color: oklch(1 0 0 / 0.15);
+  }
+}
+
+/* Keyframes */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(20px, -15px) scale(1.05); }
+  66%       { transform: translate(-10px, 10px) scale(0.97); }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 330 / 0.4); }
+  50%       { box-shadow: 0 0 0 8px oklch(0.65 0.22 330 / 0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.7s ease both;
+}
+.animate-fade-up-delay-1 { animation: fadeUp 0.7s ease 0.1s both; }
+.animate-fade-up-delay-2 { animation: fadeUp 0.7s ease 0.2s both; }
+.animate-fade-up-delay-3 { animation: fadeUp 0.7s ease 0.3s both; }
+.animate-fade-up-delay-4 { animation: fadeUp 0.7s ease 0.4s both; }
+.animate-orb { animation: orb-drift 12s ease-in-out infinite; }
+.animate-orb-2 { animation: orb-drift 16s ease-in-out 2s infinite reverse; }
+.animate-pulse-ring { animation: pulse-ring 2.5s ease-in-out infinite; }
