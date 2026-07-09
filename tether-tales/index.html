@@ -31,7 +31,7 @@
     .actions { justify-self:end;display:flex;gap:7px;pointer-events:auto }.round-button{width:42px;height:42px;padding:0;border:1px solid rgba(255,255,255,.5);border-radius:50%;background:rgba(248,240,224,.57);box-shadow:inset 0 1px rgba(255,255,255,.75),0 7px 18px rgba(65,65,47,.08);backdrop-filter:blur(12px);cursor:pointer}.round-button:active{transform:scale(.94)}
 
     .stars-hud { position:absolute;top:calc(78px + env(safe-area-inset-top));left:50%;display:flex;gap:8px;transform:translateX(-50%) }
-    .star-mark { color:rgba(37,58,61,.22);font-size:19px;text-shadow:0 2px 6px rgba(62,71,52,.08);transition:color .22s ease,transform .22s ease }.star-mark.on{color:#d5a448;transform:scale(1.14)}
+    .star-mark { color:rgba(168,119,25,.25);font-size:21px;text-shadow:0 2px 6px rgba(92,63,12,.1);transition:color .22s ease,transform .22s ease,filter .22s ease }.star-mark.on{color:#f2b92f;transform:scale(1.18);filter:drop-shadow(0 2px 4px rgba(137,90,10,.3))}
     .hint { position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));max-width:calc(100vw - 130px);padding:9px 13px;border:1px solid rgba(255,255,255,.44);border-radius:99px;background:rgba(248,240,224,.62);color:var(--muted);box-shadow:inset 0 1px rgba(255,255,255,.7),0 8px 20px rgba(65,65,47,.08);backdrop-filter:blur(12px);font-size:8px;font-weight:800;letter-spacing:.08em;text-align:center;text-transform:uppercase;transform:translateX(-50%);white-space:nowrap }
     .toast { position:absolute;top:calc(118px + env(safe-area-inset-top));left:50%;padding:9px 13px;border:1px solid rgba(255,255,255,.48);border-radius:99px;background:rgba(248,240,224,.8);font-size:9px;font-weight:750;letter-spacing:.06em;transform:translate(-50%,-8px);opacity:0;backdrop-filter:blur(12px);transition:opacity .2s ease,transform .2s ease;white-space:nowrap }.toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -58,7 +58,7 @@
 
   <div class="overlay" id="overlay">
     <section class="card" aria-labelledby="title">
-      <div class="game-mark">ðŸ«</div><p class="eyebrow" id="eyebrow">Infinite physics puzzles Â· made for touch</p><h1 id="title">Tether Tales</h1><p class="lede" id="lede">Swipe through vines to drop, swing, and bounce the berry into Pipâ€™s mouth. Collect the three stars if you canâ€”there is always another puzzle.</p>
+      <div class="game-mark">ðŸ¬</div><p class="eyebrow" id="eyebrow">Infinite physics puzzles Â· made for touch</p><h1 id="title">Tether Tales</h1><p class="lede" id="lede">Swipe through vines to drop, swing, and bounce the sweet into Pipâ€™s mouth. Collect the three golden stars if you canâ€”there is always another puzzle.</p>
       <div class="rules"><div><b>â•±</b><span>Swipe to cut</span></div><div><b>â˜…</b><span>Collect stars</span></div><div><b>âˆž</b><span>Endless levels</span></div></div>
       <button class="primary" id="primary">Play puzzle one</button><p class="saved" id="saved">No install Â· progress saves automatically</p>
     </section>
@@ -72,24 +72,24 @@
       const eyebrowNode=document.getElementById('eyebrow'),titleNode=document.getElementById('title'),ledeNode=document.getElementById('lede'),savedNode=document.getElementById('saved');
       const starMarks=[...document.querySelectorAll('.star-mark')];
       let w=0,h=0,dpr=1,last=performance.now(),accumulator=0,state='intro',level=Math.max(1,Number(localStorage.getItem('tether-level')||1)),totalStars=Number(localStorage.getItem('tether-stars')||0);
-      let ball,ropes=[],stars=[],bumpers=[],fans=[],bubbles=[],hazards=[],goal,particles=[],swipe=null,toastTimer=0,rand=Math.random,family=0,levelStars=0,completeTimer=0,audio=null;
+      let ball,ropes=[],stars=[],bumpers=[],fans=[],bubbles=[],hazards=[],goal,particles=[],swipe=null,toastTimer=0,rand=Math.random,family=0,levelStars=0,completeTimer=0,audio=null,eatStarted=0;
 
       function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
       function nx(v){return 24+v*(w-48)}function ny(v){const top=95,bottom=82;return top+v*(h-top-bottom)}function mirror(v,m){return m?1-v:v}
       function point(x,y){return{x:nx(x),y:ny(y)}}
       function rope(ax,ay){const length=Math.hypot(ball.x-ax,ball.y-ay);ropes.push({ax,ay,length,active:true,sway:rand()*Math.PI*2})}
-      function addStar(x,y){stars.push({...point(x,y),r:11,collected:false,pulse:rand()*Math.PI*2})}
+      function addStar(x,y){stars.push({...point(x,y),r:14,collected:false,pulse:rand()*Math.PI*2})}
 
       function resize(){dpr=Math.min(2,devicePixelRatio||1);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(state!=='intro')setupLevel(false)}
 
       function setupLevel(setPlaying=true){
-        clearTimeout(completeTimer);completeTimer=0;rand=mulberry32(level*92821+77);family=(level-1)%6;const m=rand()>.5;
+        clearTimeout(completeTimer);completeTimer=0;eatStarted=0;rand=mulberry32(level*92821+77);family=(level-1)%6;const m=rand()>.5;
         ropes=[];stars=[];bumpers=[];fans=[];bubbles=[];hazards=[];particles=[];levelStars=0;
-        const placeBall=(x,y,vx=0)=>{const p=point(mirror(x,m),y);ball={x:p.x,y:p.y,px:p.x-vx,py:p.y,r:14,bubble:false,alive:true}}
-        const placeGoal=(x,y)=>{const p=point(mirror(x,m),y);goal={...p,r:27,blink:0}}
+        const placeBall=(x,y,vx=0)=>{const p=point(mirror(x,m),y);ball={x:p.x,y:p.y,px:p.x-vx,py:p.y,r:15,bubble:false,alive:true,eaten:false}}
+        const placeGoal=(x,y)=>{const p=point(mirror(x,m),y);goal={...p,r:33,blink:0}}
 
         if(family===0){
-          placeBall(.42,.28,(m?-1:1)*(1.7+rand()*1.1));const a=point(mirror(.42,m),.04);rope(a.x,a.y);placeGoal(.72,.86);addStar(mirror(.55,m),.43);addStar(mirror(.67,m),.61);addStar(mirror(.72,m),.79);hintNode.textContent='Let it swing, then cut at the right moment';
+          placeBall(.42,.28,(m?-1:1)*(1.1+rand()*.7));const a=point(mirror(.42,m),.04);rope(a.x,a.y);placeGoal(.72,.86);addStar(mirror(.55,m),.43);addStar(mirror(.67,m),.61);addStar(mirror(.72,m),.79);hintNode.textContent='Let it swing, then cut near the golden trail';
         }else if(family===1){
           placeBall(.5,.30);const a=point(mirror(.24,m),.05),b=point(mirror(.76,m),.05);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.22,.84);addStar(mirror(.37,m),.44);addStar(mirror(.24,m),.62);addStar(mirror(.22,m),.78);hintNode.textContent='Choose the first vine carefully';
         }else if(family===2){
@@ -105,19 +105,24 @@
       }
 
       function physicsStep(dt){
+        if(state==='eating'){
+          particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt*1.45});particles=particles.filter(p=>p.life>0);return;
+        }
         if(state!=='playing'||!ball.alive)return;
-        let ax=0,ay=ball.bubble?-235:490;
+        let ax=0,ay=ball.bubble?-185:355;
         for(const fan of fans)if(ball.x>fan.x&&ball.x<fan.x+fan.w&&ball.y>fan.y&&ball.y<fan.y+fan.h)ax+=fan.force;
-        const vx=(ball.x-ball.px)*.998,vy=(ball.y-ball.py)*.998;ball.px=ball.x;ball.py=ball.y;ball.x+=vx+ax*dt*dt;ball.y+=vy+ay*dt*dt;
+        const goalDx=goal.x-ball.x,goalDy=goal.y-ball.y,goalDistance=Math.hypot(goalDx,goalDy)||1;
+        if(!ball.bubble&&goalDistance<135){const assist=(1-goalDistance/135)*105;ax+=goalDx/goalDistance*assist;ay+=goalDy/goalDistance*assist}
+        const vx=(ball.x-ball.px)*.994,vy=(ball.y-ball.py)*.994;ball.px=ball.x;ball.py=ball.y;ball.x+=vx+ax*dt*dt;ball.y+=vy+ay*dt*dt;
 
         for(let iteration=0;iteration<7;iteration++)for(const r of ropes){if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy)||1;if(d>r.length){ball.x=r.ax+dx/d*r.length;ball.y=r.ay+dy/d*r.length}}
 
-        for(const bumper of bumpers){const dx=ball.x-bumper.x,dy=ball.y-bumper.y,d=Math.hypot(dx,dy)||1,min=ball.r+bumper.r;if(d<min){const nxv=dx/d,nyv=dy/d,vx2=ball.x-ball.px,vy2=ball.y-ball.py,dot=vx2*nxv+vy2*nyv;ball.x=bumper.x+nxv*min;ball.y=bumper.y+nyv*min;const rvx=(vx2-1.82*dot*nxv)*.92,rvy=(vy2-1.82*dot*nyv)*.92;ball.px=ball.x-rvx;ball.py=ball.y-rvy;burst(ball.x,ball.y,'#d7a556',5)}}
+        for(const bumper of bumpers){const dx=ball.x-bumper.x,dy=ball.y-bumper.y,d=Math.hypot(dx,dy)||1,min=ball.r+bumper.r;if(d<min){const nxv=dx/d,nyv=dy/d,vx2=ball.x-ball.px,vy2=ball.y-ball.py,dot=vx2*nxv+vy2*nyv;ball.x=bumper.x+nxv*min;ball.y=bumper.y+nyv*min;const rvx=(vx2-1.72*dot*nxv)*.82,rvy=(vy2-1.72*dot*nyv)*.82;ball.px=ball.x-rvx;ball.py=ball.y-rvy;burst(ball.x,ball.y,'#f1b735',7)}}
         for(const bubble of bubbles)if(!bubble.used&&!ball.bubble&&Math.hypot(ball.x-bubble.x,ball.y-bubble.y)<ball.r+bubble.r){bubble.used=true;ball.bubble=true;ball.py=ball.y+1;showToast('Bubble caught Â· tap it to pop');tone(520,.08)}
-        for(const hazard of hazards)if(ball.x+ball.r>hazard.x&&ball.x-ball.r<hazard.x+hazard.w&&ball.y+ball.r>hazard.y&&ball.y-ball.r<hazard.y+hazard.h){failLevel('The thorns got the berry')}
-        stars.forEach((star,i)=>{if(!star.collected&&Math.hypot(ball.x-star.x,ball.y-star.y)<ball.r+star.r+2){star.collected=true;levelStars++;starMarks[i].classList.add('on');burst(star.x,star.y,'#d7a548',10);tone(640+i*90,.09)}})
-        if(Math.hypot(ball.x-goal.x,ball.y-goal.y)<ball.r+goal.r*.6&&!completeTimer){completeTimer=setTimeout(completeLevel,330);ball.alive=false;burst(goal.x,goal.y,'#df6e58',16);tone(340,.1);setTimeout(()=>tone(510,.14),65)}
-        if(ball.y>h+80||ball.x<-80||ball.x>w+80||ball.y<-100)failLevel(ball.bubble?'The bubble floated away':'The berry left the garden');
+        for(const hazard of hazards)if(ball.x+ball.r>hazard.x&&ball.x-ball.r<hazard.x+hazard.w&&ball.y+ball.r>hazard.y&&ball.y-ball.r<hazard.y+hazard.h){failLevel('The thorns got the sweet')}
+        stars.forEach((star,i)=>{if(!star.collected&&Math.hypot(ball.x-star.x,ball.y-star.y)<ball.r+star.r+7){star.collected=true;levelStars++;starMarks[i].classList.add('on');burst(star.x,star.y,'#f4bb32',14);tone(640+i*90,.11);if(navigator.vibrate)navigator.vibrate(5)}})
+        if(Math.hypot(ball.x-goal.x,ball.y-(goal.y+9))<ball.r+goal.r*.88&&!completeTimer){state='eating';eatStarted=performance.now();ball.alive=false;ball.eaten=true;ball.eatX=ball.x;ball.eatY=ball.y;ropes.forEach(r=>r.active=false);completeTimer=setTimeout(completeLevel,1150);burst(goal.x,goal.y,'#f4bb32',20);tone(340,.1);setTimeout(()=>tone(510,.14),65);setTimeout(()=>tone(290,.08),420);if(navigator.vibrate)navigator.vibrate([8,45,8])}
+        if(ball.y>h+100||ball.x<-100||ball.x>w+100||ball.y<-120)failLevel(ball.bubble?'The bubble floated away':'The sweet left the garden');
         particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=120*dt;p.life-=dt*1.7});particles=particles.filter(p=>p.life>0);
       }
 
@@ -126,8 +131,8 @@
       function popBubble(){if(!ball.bubble)return;ball.bubble=false;ball.py=ball.y+1.5;burst(ball.x,ball.y,'#b9d8d8',12);showToast('Bubble popped');tone(460,.07)}
 
       function completeLevel(){
-        completeTimer=0;if(state!=='playing'&&state!=='complete')return;state='complete';totalStars+=levelStars;localStorage.setItem('tether-stars',totalStars);localStorage.setItem('tether-level',level+1);
-        eyebrowNode.textContent=levelStars===3?'Perfect path Â· all stars collected':'Puzzle solved';titleNode.textContent=levelStars===3?'Perfect!':'Fed!';ledeNode.textContent=`Pip got the berry and you collected ${levelStars} of 3 stars. Puzzle ${level+1} is generated and waiting.`;primary.textContent='Next puzzle';savedNode.textContent=`${totalStars} stars collected Â· progress saved`;overlay.classList.remove('hidden');
+        completeTimer=0;if(state!=='eating'&&state!=='playing'&&state!=='complete')return;state='complete';totalStars+=levelStars;localStorage.setItem('tether-stars',totalStars);localStorage.setItem('tether-level',level+1);
+        eyebrowNode.textContent=levelStars===3?'Perfect path Â· every golden star':'Puzzle solved Â· Pip loved it';titleNode.textContent=levelStars===3?'Golden!':'Yum!';ledeNode.textContent=`Pip chewed the sweet and you collected ${levelStars} of 3 golden stars. Puzzle ${level+1} is generated and waiting.`;primary.textContent='Next puzzle';savedNode.textContent=`${totalStars} golden stars Â· progress saved`;overlay.classList.remove('hidden');
       }
       function failLevel(message){if(state!=='playing')return;state='failed';ball.alive=false;eyebrowNode.textContent='Almost there';titleNode.textContent='Try again';ledeNode.textContent=`${message}. Every puzzle can be restarted as many times as you like.`;primary.textContent='Restart puzzle';savedNode.textContent='No lives lost Â· no penalty';setTimeout(()=>overlay.classList.remove('hidden'),280);tone(120,.16)}
 
@@ -138,21 +143,44 @@
       }
       function drawAnchor(r){ctx.fillStyle='#36574d';ctx.beginPath();ctx.arc(r.ax,r.ay,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d6bd82';ctx.beginPath();ctx.arc(r.ax,r.ay,3,0,Math.PI*2);ctx.fill()}
       function drawRopes(){for(const r of ropes){drawAnchor(r);if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy),segments=Math.max(4,Math.ceil(d/13));ctx.strokeStyle='#527462';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(r.ax,r.ay);for(let i=1;i<=segments;i++){const t=i/segments,x=r.ax+dx*t+Math.sin(t*Math.PI*5+r.sway)*1.4,y=r.ay+dy*t;ctx.lineTo(x,y)}ctx.stroke();ctx.strokeStyle='rgba(236,241,213,.35)';ctx.lineWidth=1;ctx.stroke()}}
-      function drawStars(time){for(const star of stars){if(star.collected)continue;const s=star.r+Math.sin(time*.004+star.pulse)*1.2;ctx.save();ctx.translate(star.x,star.y);ctx.rotate(time*.0003);ctx.fillStyle='#d6a548';ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?s:s*.46;const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.fill();ctx.restore()}}
+      function drawStars(time){for(const star of stars){if(star.collected)continue;const s=star.r+Math.sin(time*.004+star.pulse)*1.5;ctx.save();ctx.translate(star.x,star.y);ctx.rotate(Math.sin(time*.001+star.pulse)*.12);ctx.shadowColor='rgba(177,119,14,.38)';ctx.shadowBlur=9;ctx.fillStyle='#f4bb32';ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?s:s*.46;const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='rgba(255,248,194,.8)';ctx.beginPath();ctx.arc(-s*.2,-s*.24,s*.16,0,Math.PI*2);ctx.fill();ctx.restore()}}
       function drawBumpers(){for(const b of bumpers){ctx.fillStyle='rgba(57,66,55,.15)';ctx.beginPath();ctx.ellipse(b.x+4,b.y+8,b.r*1.05,b.r*.45,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d9a654';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9c733b';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#f3d184';ctx.beginPath();ctx.arc(b.x-7,b.y-8,b.r*.26,0,Math.PI*2);ctx.fill()}}
       function drawFans(time){for(const f of fans){ctx.fillStyle='rgba(109,151,153,.1)';ctx.strokeStyle='rgba(62,99,101,.2)';ctx.lineWidth=1;roundRect(f.x,f.y,f.w,f.h,18);ctx.fill();ctx.stroke();const dir=Math.sign(f.force);ctx.strokeStyle='rgba(54,103,104,.35)';ctx.lineWidth=2;for(let y=f.y+25;y<f.y+f.h;y+=35){const offset=(time*.04)%28;ctx.beginPath();for(let x=f.x-10;x<f.x+f.w+15;x+=28){const px=dir>0?x+offset:f.x+f.w-(x-f.x+offset);ctx.moveTo(px,y);ctx.lineTo(px+dir*10,y);ctx.lineTo(px+dir*6,y-4);ctx.moveTo(px+dir*10,y);ctx.lineTo(px+dir*6,y+4)}ctx.stroke()}}}
       function drawBubbles(){for(const b of bubbles){if(b.used)continue;const g=ctx.createRadialGradient(b.x-8,b.y-9,2,b.x,b.y,b.r);g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(.2,'rgba(192,231,230,.25)');g.addColorStop(1,'rgba(92,159,160,.18)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.7)';ctx.stroke()}}
       function drawHazards(){for(const z of hazards){ctx.fillStyle='#7d6c4e';ctx.fillRect(z.x,z.y+13,z.w,8);const count=Math.ceil(z.w/18);for(let i=0;i<count;i++){const x=z.x+i*z.w/count;ctx.fillStyle='#8b7755';ctx.beginPath();ctx.moveTo(x,z.y+14);ctx.lineTo(x+z.w/count*.5,z.y-5);ctx.lineTo(x+z.w/count,z.y+14);ctx.closePath();ctx.fill()}}}
       function drawGoal(time){
-        ctx.save();ctx.translate(goal.x,goal.y);const bob=Math.sin(time*.003)*2;ctx.translate(0,bob);ctx.fillStyle='rgba(47,61,52,.15)';ctx.beginPath();ctx.ellipse(4,25,34,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6d8b70';ctx.beginPath();ctx.arc(0,2,30,0,Math.PI*2);ctx.fill();ctx.fillStyle='#88a383';ctx.beginPath();ctx.arc(-10,-9,15,0,Math.PI*2);ctx.arc(11,-8,15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4e8cd';ctx.beginPath();ctx.arc(-9,-4,5,0,Math.PI*2);ctx.arc(9,-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#273a3b';ctx.beginPath();ctx.arc(-9,-4,2.3,0,Math.PI*2);ctx.arc(9,-4,2.3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#293f3e';ctx.beginPath();ctx.ellipse(0,11,12,8,0,0,Math.PI*2);ctx.fill();ctx.restore();
+        const eating=state==='eating',elapsed=eating?time-eatStarted:0,chew=eating&&elapsed>330?Math.sin(elapsed*.028):0,bob=eating?0:Math.sin(time*.003)*2;
+        ctx.save();ctx.translate(goal.x,goal.y+bob);ctx.scale(1+Math.abs(chew)*.035,1-Math.abs(chew)*.045);
+        ctx.fillStyle='rgba(47,61,52,.14)';ctx.beginPath();ctx.ellipse(4,31,38,12,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#5e806a';ctx.beginPath();ctx.ellipse(0,7,34,32,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#76987d';ctx.beginPath();ctx.arc(-21,-17,13,0,Math.PI*2);ctx.arc(22,-17,13,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#6c8f74';ctx.beginPath();ctx.ellipse(-31,13,10,16,-.55,0,Math.PI*2);ctx.ellipse(31,13,10,16,.55,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#486b58';ctx.beginPath();ctx.ellipse(-16,34,14,7,-.12,0,Math.PI*2);ctx.ellipse(16,34,14,7,.12,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fbf3da';ctx.beginPath();ctx.ellipse(-11,-5,8,9,0,0,Math.PI*2);ctx.ellipse(11,-5,8,9,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#263d3d';ctx.beginPath();ctx.arc(-10,-4,3.6,0,Math.PI*2);ctx.arc(10,-4,3.6,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='white';ctx.beginPath();ctx.arc(-11.2,-6,1.3,0,Math.PI*2);ctx.arc(8.8,-6,1.3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(224,111,94,.48)';ctx.beginPath();ctx.ellipse(-22,7,6,3.5,0,0,Math.PI*2);ctx.ellipse(22,7,6,3.5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#263d3d';ctx.beginPath();
+        if(!eating||elapsed<330)ctx.ellipse(0,12,15,11,0,0,Math.PI*2);else ctx.ellipse(0,13,8+chew*3,3.5+Math.abs(chew)*2,0,0,Math.PI*2);ctx.fill();
+        if(eating&&elapsed>380&&elapsed<980){ctx.fillStyle='rgba(250,246,231,.9)';ctx.strokeStyle='rgba(37,58,61,.12)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect?ctx.roundRect(-29,-55,58,25,12):ctx.rect(-29,-55,58,25);ctx.fill();ctx.stroke();ctx.fillStyle='#466458';ctx.font='800 10px ui-rounded, sans-serif';ctx.textAlign='center';ctx.fillText(elapsed<680?'nom!':'mmmâ€¦',0,-39);ctx.textAlign='start'}
+        ctx.restore();
       }
-      function drawBall(){if(!ball)return;if(ball.bubble){ctx.fillStyle='rgba(171,224,225,.18)';ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r+14,0,Math.PI*2);ctx.fill();ctx.stroke()}ctx.save();ctx.translate(ball.x,ball.y);const angle=Math.atan2(ball.y-ball.py,ball.x-ball.px);ctx.rotate(angle*.12);ctx.fillStyle='#df6e58';ctx.beginPath();ctx.arc(0,0,ball.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f3a18e';ctx.beginPath();ctx.arc(-4,-5,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4f7864';ctx.beginPath();ctx.ellipse(4,-15,8,4,-.5,0,Math.PI*2);ctx.fill();ctx.restore()}
+      function drawBall(time){
+        if(!ball)return;let x=ball.x,y=ball.y,scale=1;
+        if(ball.eaten){const t=Math.min(1,(time-eatStarted)/330),ease=1-Math.pow(1-t,3);x=ball.eatX+(goal.x-ball.eatX)*ease;y=ball.eatY+(goal.y+10-ball.eatY)*ease;scale=1-ease*.88;if(t>=1)return}
+        if(ball.bubble&&!ball.eaten){ctx.fillStyle='rgba(171,224,225,.18)';ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,ball.r+14,0,Math.PI*2);ctx.fill();ctx.stroke()}
+        ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);const angle=Math.atan2(ball.y-ball.py,ball.x-ball.px);ctx.rotate(angle*.1);
+        ctx.fillStyle='#f2a087';ctx.beginPath();ctx.moveTo(-ball.r+2,0);ctx.lineTo(-ball.r-10,-8);ctx.lineTo(-ball.r-8,8);ctx.closePath();ctx.moveTo(ball.r-2,0);ctx.lineTo(ball.r+10,-8);ctx.lineTo(ball.r+8,8);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#df6e58';ctx.beginPath();ctx.arc(0,0,ball.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,238,215,.72)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,ball.r*.56,-1.1,1.7);ctx.stroke();
+        ctx.fillStyle='rgba(255,214,190,.75)';ctx.beginPath();ctx.arc(-5,-6,4,0,Math.PI*2);ctx.fill();ctx.restore();
+      }
       function drawSwipe(){if(!swipe)return;ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(swipe.startX,swipe.startY);ctx.lineTo(swipe.x,swipe.y);ctx.stroke()}
       function roundRect(x,y,width,height,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,width,height,r):(ctx.rect(x,y,width,height))}
-      function draw(time){drawBackground();drawFans(time);drawHazards();drawStars(time);drawBubbles();drawBumpers();drawGoal(time);drawRopes();drawBall();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.5*p.life,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;drawSwipe()}
+      function draw(time){drawBackground();drawFans(time);drawHazards();drawStars(time);drawBubbles();drawBumpers();if(state==='eating'){drawRopes();drawBall(time);drawGoal(time)}else{drawGoal(time);drawRopes();drawBall(time)}for(const p of particles){ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.5*p.life,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;drawSwipe()}
 
       function segmentHit(a,b,c,d){const cross=(p,q,r)=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);const c1=cross(a,b,c),c2=cross(a,b,d),c3=cross(c,d,a),c4=cross(c,d,b);return((c1>0&&c2<0)||(c1<0&&c2>0))&&((c3>0&&c4<0)||(c3<0&&c4>0))}
-      function checkCut(x1,y1,x2,y2){for(const r of ropes)if(r.active&&segmentHit({x:x1,y:y1},{x:x2,y:y2},{x:r.ax,y:r.ay},{x:ball.x,y:ball.y}))cutRope(r)}
+      function pointSegmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;if(!length)return Math.hypot(p.x-a.x,p.y-a.y);const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/length)),x=a.x+t*dx,y=a.y+t*dy;return Math.hypot(p.x-x,p.y-y)}
+      function checkCut(x1,y1,x2,y2){const a={x:x1,y:y1},b={x:x2,y:y2};for(const r of ropes){if(!r.active)continue;const c={x:r.ax,y:r.ay},d={x:ball.x,y:ball.y};const close=pointSegmentDistance(a,c,d)<20||pointSegmentDistance(b,c,d)<20||pointSegmentDistance(c,a,b)<20||pointSegmentDistance(d,a,b)<20;if(segmentHit(a,b,c,d)||close)cutRope(r)}}
 
       function loop(now){let frame=Math.min(.035,(now-last)/1000||0);last=now;accumulator+=frame;while(accumulator>=1/120){physicsStep(1/120);accumulator-=1/120}draw(now);requestAnimationFrame(loop)}
       function nextOrRetry(){setupAudio();if(state==='complete')level++;setupLevel(true);overlay.classList.add('hidden');last=performance.now()}
