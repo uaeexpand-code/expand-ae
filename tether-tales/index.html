@@ -50,7 +50,7 @@
   <canvas id="game" aria-label="Tether Tales rope puzzle"></canvas>
   <div class="grain"></div>
   <div class="hud">
-    <header><div class="brand"><strong>TETHER TALES</strong><span>Endless pocket puzzles</span></div><div class="level"><b id="level">001</b><span>Puzzle</span></div><div class="actions"><button class="round-button" id="reset" aria-label="Restart puzzle">â†»</button><button class="round-button" id="skip" aria-label="Skip puzzle">â†’</button></div></header>
+    <header><div class="brand"><strong>TETHER TALES</strong><span>Endless pocket puzzles</span></div><div class="level"><b id="level">001</b><span>Puzzle</span></div><div class="actions"><button class="round-button" id="hintButton" aria-label="Show hint">?</button><button class="round-button" id="reset" aria-label="Restart puzzle">â†»</button><button class="round-button" id="skip" aria-label="Skip puzzle">â†’</button></div></header>
     <div class="stars-hud"><span class="star-mark">â˜…</span><span class="star-mark">â˜…</span><span class="star-mark">â˜…</span></div>
     <div class="hint" id="hint">Swipe across a vine to cut it</div>
     <div class="toast" id="toast">Vine cut</div>
@@ -72,34 +72,39 @@
       const eyebrowNode=document.getElementById('eyebrow'),titleNode=document.getElementById('title'),ledeNode=document.getElementById('lede'),savedNode=document.getElementById('saved');
       const starMarks=[...document.querySelectorAll('.star-mark')];
       let w=0,h=0,dpr=1,last=performance.now(),accumulator=0,state='intro',level=Math.max(1,Number(localStorage.getItem('tether-level')||1)),totalStars=Number(localStorage.getItem('tether-stars')||0);
-      let ball,ropes=[],stars=[],bumpers=[],fans=[],bubbles=[],hazards=[],goal,particles=[],swipe=null,toastTimer=0,rand=Math.random,family=0,levelStars=0,completeTimer=0,audio=null,eatStarted=0;
+      let ball,ropes=[],stars=[],bumpers=[],fans=[],bubbles=[],hazards=[],goal,particles=[],swipe=null,toastTimer=0,rand=Math.random,family=0,levelStars=0,completeTimer=0,audio=null,eatStarted=0,attempts=0,difficulty=0,solutionOrder=[],hintRope=-1;
 
       function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
       function nx(v){return 24+v*(w-48)}function ny(v){const top=95,bottom=82;return top+v*(h-top-bottom)}function mirror(v,m){return m?1-v:v}
       function point(x,y){return{x:nx(x),y:ny(y)}}
-      function rope(ax,ay){const length=Math.hypot(ball.x-ax,ball.y-ay);ropes.push({ax,ay,length,active:true,sway:rand()*Math.PI*2})}
+      function rope(ax,ay){const length=Math.hypot(ball.x-ax,ball.y-ay);ropes.push({ax,ay,length,active:true,sway:rand()*Math.PI*2,index:ropes.length})}
       function addStar(x,y){stars.push({...point(x,y),r:14,collected:false,pulse:rand()*Math.PI*2})}
 
       function resize(){dpr=Math.min(2,devicePixelRatio||1);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(state!=='intro')setupLevel(false)}
 
       function setupLevel(setPlaying=true){
-        clearTimeout(completeTimer);completeTimer=0;eatStarted=0;rand=mulberry32(level*92821+77);family=(level-1)%6;const m=rand()>.5;
-        ropes=[];stars=[];bumpers=[];fans=[];bubbles=[];hazards=[];particles=[];levelStars=0;
+        clearTimeout(completeTimer);completeTimer=0;eatStarted=0;hintRope=-1;rand=mulberry32(level*92821+77);family=(level-1)%8;const m=level>3&&rand()>.5;
+        difficulty=Math.min(.82,(level-1)/38);ropes=[];stars=[];bumpers=[];fans=[];bubbles=[];hazards=[];particles=[];levelStars=0;solutionOrder=[];
         const placeBall=(x,y,vx=0)=>{const p=point(mirror(x,m),y);ball={x:p.x,y:p.y,px:p.x-vx,py:p.y,r:15,bubble:false,alive:true,eaten:false}}
-        const placeGoal=(x,y)=>{const p=point(mirror(x,m),y);goal={...p,r:33,blink:0}}
+        const placeGoal=(x,y)=>{const p=point(mirror(x,m),y);goal={...p,r:42-difficulty*8+Math.min(3,attempts)*4,blink:0}}
+        const star=(x,y)=>addStar(mirror(x,m),y);
 
         if(family===0){
-          placeBall(.42,.28,(m?-1:1)*(1.1+rand()*.7));const a=point(mirror(.42,m),.04);rope(a.x,a.y);placeGoal(.72,.86);addStar(mirror(.55,m),.43);addStar(mirror(.67,m),.61);addStar(mirror(.72,m),.79);hintNode.textContent='Let it swing, then cut near the golden trail';
+          placeBall(.5,.24);const a=point(mirror(.5,m),.04);rope(a.x,a.y);placeGoal(.5,.85);star(.5,.42);star(.5,.61);star(.5,.78);solutionOrder=[0];hintNode.textContent=level===1?'Swipe across the vine â€” the sweet falls straight to Pip':'A clean drop, with a slightly smaller target';
         }else if(family===1){
-          placeBall(.5,.30);const a=point(mirror(.24,m),.05),b=point(mirror(.76,m),.05);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.22,.84);addStar(mirror(.37,m),.44);addStar(mirror(.24,m),.62);addStar(mirror(.22,m),.78);hintNode.textContent='Choose the first vine carefully';
+          placeBall(.5,.30);const a=point(mirror(.31,m),.05),b=point(mirror(.69,m),.05);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.5,.85);star(.5,.45);star(.5,.63);star(.5,.78);solutionOrder=[0,1];hintNode.textContent='Cut both vines â€” either order works';
         }else if(family===2){
-          placeBall(.28,.24,(m?-1:1)*1.8);const a=point(mirror(.28,m),.03);rope(a.x,a.y);placeGoal(.76,.86);const bp=point(mirror(.53,m),.56);bumpers.push({...bp,r:30});addStar(mirror(.42,m),.43);addStar(mirror(.59,m),.63);addStar(mirror(.75,m),.79);hintNode.textContent='Use the drum to change direction';
+          placeBall(.43,.24);const a=point(mirror(.43,m),.03);rope(a.x,a.y);placeGoal(.57+difficulty*.035,.85);const fp=point(mirror(.36,m),.43);fans.push({x:fp.x-(m?105:0),y:fp.y,w:105,h:190,force:(m?-1:1)*(95+difficulty*55)});star(.46,.43);star(.52,.62);star(.57,.78);solutionOrder=[0];hintNode.textContent='Cut once â€” the soft breeze guides the fall';
         }else if(family===3){
-          placeBall(.48,.24);const a=point(mirror(.48,m),.03);rope(a.x,a.y);placeGoal(.78,.86);const fp=point(mirror(.42,m),.43);fans.push({x:fp.x-(m?110:0),y:fp.y,w:110,h:150,force:(m?-1:1)*310});addStar(mirror(.54,m),.46);addStar(mirror(.67,m),.62);addStar(mirror(.77,m),.79);hintNode.textContent='The wind keeps pushing after the cut';
+          placeBall(.42,.28,(m?-1:1)*(.55+difficulty*.5));const a=point(mirror(.42,m),.04);rope(a.x,a.y);placeGoal(.61+difficulty*.04,.85);star(.48,.44);star(.56,.62);star(.61,.78);solutionOrder=[0];hintNode.textContent='Let the sweet lean toward Pip, then cut';
         }else if(family===4){
-          placeBall(.34,.21);const a=point(mirror(.34,m),.02);rope(a.x,a.y);placeGoal(.73,.22);const bp=point(mirror(.34,m),.52);bubbles.push({...bp,r:28,used:false});const fp=point(mirror(.39,m),.30);fans.push({x:fp.x-(m?125:0),y:fp.y,w:125,h:230,force:(m?-1:1)*155});addStar(mirror(.34,m),.43);addStar(mirror(.51,m),.34);addStar(mirror(.68,m),.25);hintNode.textContent='Catch the bubble, then tap it to pop';
+          placeBall(.5,.29);const a=point(mirror(.3,m),.05),b=point(mirror(.72,m),.05);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.64+difficulty*.035,.85);star(.51,.43);star(.59,.62);star(.64,.78);solutionOrder=[0,1];hintNode.textContent='Cut the vine away from Pip first, then the other';
+        }else if(family===5){
+          placeBall(.5,.20);const a=point(mirror(.5,m),.02);rope(a.x,a.y);placeGoal(.5,.31);const bp=point(mirror(.5,m),.62);bubbles.push({...bp,r:31,used:false});star(.5,.41);star(.5,.58);star(.5,.38);solutionOrder=[0];hintNode.textContent='Cut it â€” the bubble brings the sweet back up';
+        }else if(family===6){
+          placeBall(.46,.23);const a=point(mirror(.46,m),.03);rope(a.x,a.y);placeGoal(.55+difficulty*.025,.85);const bp=point(mirror(.29,m),.64);bumpers.push({...bp,r:32});star(.4,.43);star(.48,.62);star(.55,.78);solutionOrder=[0];hintNode.textContent='The drum is optional â€” the main path stays safe';
         }else{
-          placeBall(.5,.27);const a=point(mirror(.24,m),.04),b=point(mirror(.76,m),.04);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.79,.84);const hz=point(mirror(.45,m),.69);hazards.push({x:hz.x-(m?150:0),y:hz.y,w:150,h:21});addStar(mirror(.38,m),.45);addStar(mirror(.63,m),.55);addStar(mirror(.78,m),.77);hintNode.textContent='Avoid the thorns below';
+          placeBall(.5,.23);const a=point(mirror(.5,m),.03);rope(a.x,a.y);placeGoal(.5,.85);const y=ny(.67),gap=Math.max(92,132-difficulty*32),center=nx(.5);hazards.push({x:0,y,w:Math.max(0,center-gap/2),h:21});hazards.push({x:center+gap/2,y,w:Math.max(0,w-center-gap/2),h:21});star(.5,.42);star(.5,.6);star(.5,.78);solutionOrder=[0];hintNode.textContent='Drop through the wide safe gap between the thorns';
         }
         levelNode.textContent=String(level).padStart(3,'0');starMarks.forEach(s=>s.classList.remove('on'));if(setPlaying)state='playing';
       }
@@ -111,9 +116,9 @@
         if(state!=='playing'||!ball.alive)return;
         let ax=0,ay=ball.bubble?-185:355;
         for(const fan of fans)if(ball.x>fan.x&&ball.x<fan.x+fan.w&&ball.y>fan.y&&ball.y<fan.y+fan.h)ax+=fan.force;
-        const goalDx=goal.x-ball.x,goalDy=goal.y-ball.y,goalDistance=Math.hypot(goalDx,goalDy)||1;
-        if(!ball.bubble&&goalDistance<135){const assist=(1-goalDistance/135)*105;ax+=goalDx/goalDistance*assist;ay+=goalDy/goalDistance*assist}
-        const vx=(ball.x-ball.px)*.994,vy=(ball.y-ball.py)*.994;ball.px=ball.x;ball.py=ball.y;ball.x+=vx+ax*dt*dt;ball.y+=vy+ay*dt*dt;
+        const goalDx=goal.x-ball.x,goalDy=goal.y-ball.y,goalDistance=Math.hypot(goalDx,goalDy)||1,assistRange=170+Math.min(3,attempts)*28-difficulty*18;
+        if(!ball.bubble&&goalDistance<assistRange){const assist=(1-goalDistance/assistRange)*(120+Math.min(3,attempts)*55);ax+=goalDx/goalDistance*assist;ay+=goalDy/goalDistance*assist}
+        const maxVelocity=7.2+difficulty*1.4,rawVx=(ball.x-ball.px)*.994,rawVy=(ball.y-ball.py)*.994,vx=Math.max(-maxVelocity,Math.min(maxVelocity,rawVx)),vy=Math.max(-maxVelocity,Math.min(maxVelocity,rawVy));ball.px=ball.x;ball.py=ball.y;ball.x+=vx+ax*dt*dt;ball.y+=vy+ay*dt*dt;
 
         for(let iteration=0;iteration<7;iteration++)for(const r of ropes){if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy)||1;if(d>r.length){ball.x=r.ax+dx/d*r.length;ball.y=r.ay+dy/d*r.length}}
 
@@ -127,7 +132,7 @@
       }
 
       function burst(x,y,color,count){for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*80;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color})}}
-      function cutRope(r){if(!r.active)return;r.active=false;burst((r.ax+ball.x)/2,(r.ay+ball.y)/2,'#557d69',7);showToast('Vine cut');tone(240,.05);if(navigator.vibrate)navigator.vibrate(8)}
+      function cutRope(r){if(!r.active)return;r.active=false;burst((r.ax+ball.x)/2,(r.ay+ball.y)/2,'#557d69',7);const next=solutionOrder.find(index=>ropes[index]?.active);hintRope=next??-1;showToast('Vine cut');tone(240,.05);if(navigator.vibrate)navigator.vibrate(8)}
       function popBubble(){if(!ball.bubble)return;ball.bubble=false;ball.py=ball.y+1.5;burst(ball.x,ball.y,'#b9d8d8',12);showToast('Bubble popped');tone(460,.07)}
 
       function completeLevel(){
@@ -142,7 +147,7 @@
         ctx.strokeStyle='rgba(66,84,68,.08)';ctx.lineWidth=1;for(let y=120;y<h;y+=54){ctx.beginPath();ctx.moveTo(0,y+Math.sin(y)*4);ctx.bezierCurveTo(w*.3,y-14,w*.7,y+15,w,y-4);ctx.stroke()}
       }
       function drawAnchor(r){ctx.fillStyle='#36574d';ctx.beginPath();ctx.arc(r.ax,r.ay,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d6bd82';ctx.beginPath();ctx.arc(r.ax,r.ay,3,0,Math.PI*2);ctx.fill()}
-      function drawRopes(){for(const r of ropes){drawAnchor(r);if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy),segments=Math.max(4,Math.ceil(d/13));ctx.strokeStyle='#527462';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(r.ax,r.ay);for(let i=1;i<=segments;i++){const t=i/segments,x=r.ax+dx*t+Math.sin(t*Math.PI*5+r.sway)*1.4,y=r.ay+dy*t;ctx.lineTo(x,y)}ctx.stroke();ctx.strokeStyle='rgba(236,241,213,.35)';ctx.lineWidth=1;ctx.stroke()}}
+      function drawRopes(){for(const r of ropes){drawAnchor(r);if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy),segments=Math.max(4,Math.ceil(d/13)),highlight=r.index===hintRope;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(r.ax,r.ay);for(let i=1;i<=segments;i++){const t=i/segments,x=r.ax+dx*t+Math.sin(t*Math.PI*5+r.sway)*1.4,y=r.ay+dy*t;ctx.lineTo(x,y)}if(highlight){ctx.strokeStyle='rgba(245,184,43,.45)';ctx.lineWidth=10+Math.sin(performance.now()*.009)*2;ctx.stroke()}ctx.strokeStyle=highlight?'#e1aa28':'#527462';ctx.lineWidth=4;ctx.stroke();ctx.strokeStyle='rgba(236,241,213,.42)';ctx.lineWidth=1;ctx.stroke();if(highlight){const mx=(r.ax+ball.x)/2,my=(r.ay+ball.y)/2;ctx.fillStyle='rgba(250,246,231,.94)';ctx.beginPath();ctx.arc(mx,my,17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b17b16';ctx.font='700 15px sans-serif';ctx.textAlign='center';ctx.fillText('âœ‚',mx,my+5);ctx.textAlign='start'}}}
       function drawStars(time){for(const star of stars){if(star.collected)continue;const s=star.r+Math.sin(time*.004+star.pulse)*1.5;ctx.save();ctx.translate(star.x,star.y);ctx.rotate(Math.sin(time*.001+star.pulse)*.12);ctx.shadowColor='rgba(177,119,14,.38)';ctx.shadowBlur=9;ctx.fillStyle='#f4bb32';ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?s:s*.46;const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='rgba(255,248,194,.8)';ctx.beginPath();ctx.arc(-s*.2,-s*.24,s*.16,0,Math.PI*2);ctx.fill();ctx.restore()}}
       function drawBumpers(){for(const b of bumpers){ctx.fillStyle='rgba(57,66,55,.15)';ctx.beginPath();ctx.ellipse(b.x+4,b.y+8,b.r*1.05,b.r*.45,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d9a654';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9c733b';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#f3d184';ctx.beginPath();ctx.arc(b.x-7,b.y-8,b.r*.26,0,Math.PI*2);ctx.fill()}}
       function drawFans(time){for(const f of fans){ctx.fillStyle='rgba(109,151,153,.1)';ctx.strokeStyle='rgba(62,99,101,.2)';ctx.lineWidth=1;roundRect(f.x,f.y,f.w,f.h,18);ctx.fill();ctx.stroke();const dir=Math.sign(f.force);ctx.strokeStyle='rgba(54,103,104,.35)';ctx.lineWidth=2;for(let y=f.y+25;y<f.y+f.h;y+=35){const offset=(time*.04)%28;ctx.beginPath();for(let x=f.x-10;x<f.x+f.w+15;x+=28){const px=dir>0?x+offset:f.x+f.w-(x-f.x+offset);ctx.moveTo(px,y);ctx.lineTo(px+dir*10,y);ctx.lineTo(px+dir*6,y-4);ctx.moveTo(px+dir*10,y);ctx.lineTo(px+dir*6,y+4)}ctx.stroke()}}}
@@ -183,8 +188,9 @@
       function checkCut(x1,y1,x2,y2){const a={x:x1,y:y1},b={x:x2,y:y2};for(const r of ropes){if(!r.active)continue;const c={x:r.ax,y:r.ay},d={x:ball.x,y:ball.y};const close=pointSegmentDistance(a,c,d)<20||pointSegmentDistance(b,c,d)<20||pointSegmentDistance(c,a,b)<20||pointSegmentDistance(d,a,b)<20;if(segmentHit(a,b,c,d)||close)cutRope(r)}}
 
       function loop(now){let frame=Math.min(.035,(now-last)/1000||0);last=now;accumulator+=frame;while(accumulator>=1/120){physicsStep(1/120);accumulator-=1/120}draw(now);requestAnimationFrame(loop)}
-      function nextOrRetry(){setupAudio();if(state==='complete')level++;setupLevel(true);overlay.classList.add('hidden');last=performance.now()}
-      function skipLevel(){if(state==='intro')return;level++;localStorage.setItem('tether-level',level);setupLevel(true);overlay.classList.add('hidden');showToast('New puzzle generated')}
+      function nextOrRetry(){setupAudio();if(state==='complete'){level++;attempts=0}else if(state==='failed')attempts++;setupLevel(true);overlay.classList.add('hidden');last=performance.now()}
+      function skipLevel(){if(state==='intro')return;level++;attempts=0;localStorage.setItem('tether-level',level);setupLevel(true);overlay.classList.add('hidden');showToast('New solvable puzzle loaded')}
+      function showHint(){if(state!=='playing')return;const next=solutionOrder.find(index=>ropes[index]?.active);if(next===undefined){showToast(ball.bubble?'Let the bubble carry the sweet upward':'The sweet is free â€” guide it toward Pip');return}hintRope=next;const step=solutionOrder.indexOf(next)+1;showToast(solutionOrder.length>1?`Cut highlighted vine Â· step ${step} of ${solutionOrder.length}`:'Cut the highlighted golden vine')}
       function showToast(text){toast.textContent=text;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1050)}
       function setupAudio(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}
       function tone(freq,duration){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.value=.022;g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}
@@ -192,7 +198,7 @@
       canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(state!=='playing')return;if(ball.bubble&&Math.hypot(e.clientX-ball.x,e.clientY-ball.y)<ball.r+28){popBubble();return}swipe={startX:e.clientX,startY:e.clientY,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY};canvas.setPointerCapture(e.pointerId)});
       canvas.addEventListener('pointermove',e=>{if(!swipe)return;checkCut(swipe.lastX,swipe.lastY,e.clientX,e.clientY);swipe.lastX=e.clientX;swipe.lastY=e.clientY;swipe.x=e.clientX;swipe.y=e.clientY});
       canvas.addEventListener('pointerup',()=>swipe=null);canvas.addEventListener('pointercancel',()=>swipe=null);
-      primary.addEventListener('click',nextOrRetry);document.getElementById('reset').addEventListener('click',()=>{if(state!=='intro'){setupLevel(true);overlay.classList.add('hidden');showToast('Puzzle restarted')}});document.getElementById('skip').addEventListener('click',skipLevel);
+      primary.addEventListener('click',nextOrRetry);document.getElementById('hintButton').addEventListener('click',showHint);document.getElementById('reset').addEventListener('click',()=>{if(state!=='intro'){attempts++;setupLevel(true);overlay.classList.add('hidden');showToast(attempts>1?'Extra help added':'Puzzle restarted')}});document.getElementById('skip').addEventListener('click',skipLevel);
       window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,160));document.addEventListener('visibilitychange',()=>last=performance.now());
 
       resize();setupLevel(false);state='intro';requestAnimationFrame(loop);
