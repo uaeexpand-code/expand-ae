@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#efe4cf" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Tether Tales â€” an infinite rope-cutting puzzle game." />
+  <title>Tether Tales</title>
+  <style>
+    :root {
+      --paper: #f1e6d2;
+      --ink: #253a3d;
+      --muted: rgba(37,58,61,.58);
+      --coral: #df6e58;
+      --leaf: #557d69;
+      --line: rgba(37,58,61,.15);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none }
+    body { position:fixed;inset:0;background:var(--paper);color:var(--ink);font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;user-select:none }
+    button { font:inherit;color:inherit }
+    canvas { position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none }
+    .grain { position:fixed;z-index:7;inset:0;pointer-events:none;opacity:.1;mix-blend-mode:multiply;background-image:repeating-radial-gradient(circle at 22% 38%,rgba(60,56,42,.7) 0 .3px,transparent .65px 4px),repeating-radial-gradient(circle at 78% 67%,rgba(255,255,255,.6) 0 .35px,transparent .7px 5px);background-size:9px 12px,13px 9px }
+
+    .hud { position:fixed;z-index:10;inset:0;pointer-events:none }
+    header { position:absolute;top:0;left:0;right:0;min-height:76px;padding:calc(16px + env(safe-area-inset-top)) 16px 11px;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;background:linear-gradient(to bottom,rgba(248,240,224,.74),transparent) }
+    .brand strong { display:block;font-size:12px;letter-spacing:.17em }.brand span{display:block;margin-top:5px;color:var(--muted);font-size:8px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
+    .level { text-align:center }.level b{display:block;font:400 24px/.9 Georgia,serif;font-variant-numeric:tabular-nums}.level span{display:block;margin-top:6px;color:var(--muted);font-size:7px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .actions { justify-self:end;display:flex;gap:7px;pointer-events:auto }.round-button{width:42px;height:42px;padding:0;border:1px solid rgba(255,255,255,.5);border-radius:50%;background:rgba(248,240,224,.57);box-shadow:inset 0 1px rgba(255,255,255,.75),0 7px 18px rgba(65,65,47,.08);backdrop-filter:blur(12px);cursor:pointer}.round-button:active{transform:scale(.94)}
+
+    .stars-hud { position:absolute;top:calc(78px + env(safe-area-inset-top));left:50%;display:flex;gap:8px;transform:translateX(-50%) }
+    .star-mark { color:rgba(37,58,61,.22);font-size:19px;text-shadow:0 2px 6px rgba(62,71,52,.08);transition:color .22s ease,transform .22s ease }.star-mark.on{color:#d5a448;transform:scale(1.14)}
+    .hint { position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));max-width:calc(100vw - 130px);padding:9px 13px;border:1px solid rgba(255,255,255,.44);border-radius:99px;background:rgba(248,240,224,.62);color:var(--muted);box-shadow:inset 0 1px rgba(255,255,255,.7),0 8px 20px rgba(65,65,47,.08);backdrop-filter:blur(12px);font-size:8px;font-weight:800;letter-spacing:.08em;text-align:center;text-transform:uppercase;transform:translateX(-50%);white-space:nowrap }
+    .toast { position:absolute;top:calc(118px + env(safe-area-inset-top));left:50%;padding:9px 13px;border:1px solid rgba(255,255,255,.48);border-radius:99px;background:rgba(248,240,224,.8);font-size:9px;font-weight:750;letter-spacing:.06em;transform:translate(-50%,-8px);opacity:0;backdrop-filter:blur(12px);transition:opacity .2s ease,transform .2s ease;white-space:nowrap }.toast.show{opacity:1;transform:translate(-50%,0)}
+
+    .overlay { position:fixed;z-index:20;inset:0;display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom));background:rgba(60,73,59,.18);backdrop-filter:blur(8px);transition:opacity .3s ease,visibility .3s ease }.overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+    .card { width:min(440px,100%);padding:36px 28px 29px;border:1px solid rgba(255,255,255,.6);border-radius:30px;background:linear-gradient(150deg,rgba(250,245,234,.92),rgba(232,232,210,.78));box-shadow:inset 0 1px rgba(255,255,255,.85),0 30px 80px rgba(58,72,58,.2);text-align:center }
+    .game-mark { width:76px;height:76px;margin:0 auto 19px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:rgba(255,255,255,.25);font-size:34px }.eyebrow{margin:0 0 14px;color:var(--coral);font-size:8px;font-weight:850;letter-spacing:.18em;text-transform:uppercase}h1{margin:0;font:italic 400 clamp(50px,15vw,76px)/.82 Georgia,serif;letter-spacing:-.065em}.lede{max-width:340px;margin:22px auto 0;color:var(--muted);font-size:13px;line-height:1.65}
+    .rules { margin:25px 0;padding:15px 0;display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line) }.rules div+div{border-left:1px solid var(--line)}.rules b{display:block;font:400 20px/1 Georgia,serif}.rules span{display:block;margin-top:6px;color:var(--muted);font-size:7px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .primary { min-width:200px;min-height:48px;padding:12px 20px;border:0;border-radius:16px;background:var(--ink);color:var(--paper);font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;cursor:pointer }.primary:active{transform:scale(.97)}.saved{margin:13px 0 0;color:rgba(37,58,61,.43);font-size:8px;letter-spacing:.08em;text-transform:uppercase}
+
+    @media(min-width:720px){header{padding-inline:30px}.card{padding:43px 38px 34px}.hint{bottom:25px}}
+    @media(max-height:650px){.card{padding-block:24px 21px}.game-mark{width:55px;height:55px;margin-bottom:11px}.lede{margin-top:14px}.rules{margin:17px 0}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Tether Tales rope puzzle"></canvas>
+  <div class="grain"></div>
+  <div class="hud">
+    <header><div class="brand"><strong>TETHER TALES</strong><span>Endless pocket puzzles</span></div><div class="level"><b id="level">001</b><span>Puzzle</span></div><div class="actions"><button class="round-button" id="reset" aria-label="Restart puzzle">â†»</button><button class="round-button" id="skip" aria-label="Skip puzzle">â†’</button></div></header>
+    <div class="stars-hud"><span class="star-mark">â˜…</span><span class="star-mark">â˜…</span><span class="star-mark">â˜…</span></div>
+    <div class="hint" id="hint">Swipe across a vine to cut it</div>
+    <div class="toast" id="toast">Vine cut</div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <section class="card" aria-labelledby="title">
+      <div class="game-mark">ðŸ«</div><p class="eyebrow" id="eyebrow">Infinite physics puzzles Â· made for touch</p><h1 id="title">Tether Tales</h1><p class="lede" id="lede">Swipe through vines to drop, swing, and bounce the berry into Pipâ€™s mouth. Collect the three stars if you canâ€”there is always another puzzle.</p>
+      <div class="rules"><div><b>â•±</b><span>Swipe to cut</span></div><div><b>â˜…</b><span>Collect stars</span></div><div><b>âˆž</b><span>Endless levels</span></div></div>
+      <button class="primary" id="primary">Play puzzle one</button><p class="saved" id="saved">No install Â· progress saves automatically</p>
+    </section>
+  </div>
+
+  <script>
+    (()=>{
+      'use strict';
+      const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+      const overlay=document.getElementById('overlay'),primary=document.getElementById('primary'),levelNode=document.getElementById('level'),hintNode=document.getElementById('hint'),toast=document.getElementById('toast');
+      const eyebrowNode=document.getElementById('eyebrow'),titleNode=document.getElementById('title'),ledeNode=document.getElementById('lede'),savedNode=document.getElementById('saved');
+      const starMarks=[...document.querySelectorAll('.star-mark')];
+      let w=0,h=0,dpr=1,last=performance.now(),accumulator=0,state='intro',level=Math.max(1,Number(localStorage.getItem('tether-level')||1)),totalStars=Number(localStorage.getItem('tether-stars')||0);
+      let ball,ropes=[],stars=[],bumpers=[],fans=[],bubbles=[],hazards=[],goal,particles=[],swipe=null,toastTimer=0,rand=Math.random,family=0,levelStars=0,completeTimer=0,audio=null;
+
+      function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+      function nx(v){return 24+v*(w-48)}function ny(v){const top=95,bottom=82;return top+v*(h-top-bottom)}function mirror(v,m){return m?1-v:v}
+      function point(x,y){return{x:nx(x),y:ny(y)}}
+      function rope(ax,ay){const length=Math.hypot(ball.x-ax,ball.y-ay);ropes.push({ax,ay,length,active:true,sway:rand()*Math.PI*2})}
+      function addStar(x,y){stars.push({...point(x,y),r:11,collected:false,pulse:rand()*Math.PI*2})}
+
+      function resize(){dpr=Math.min(2,devicePixelRatio||1);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(state!=='intro')setupLevel(false)}
+
+      function setupLevel(setPlaying=true){
+        clearTimeout(completeTimer);completeTimer=0;rand=mulberry32(level*92821+77);family=(level-1)%6;const m=rand()>.5;
+        ropes=[];stars=[];bumpers=[];fans=[];bubbles=[];hazards=[];particles=[];levelStars=0;
+        const placeBall=(x,y,vx=0)=>{const p=point(mirror(x,m),y);ball={x:p.x,y:p.y,px:p.x-vx,py:p.y,r:14,bubble:false,alive:true}}
+        const placeGoal=(x,y)=>{const p=point(mirror(x,m),y);goal={...p,r:27,blink:0}}
+
+        if(family===0){
+          placeBall(.42,.28,(m?-1:1)*(1.7+rand()*1.1));const a=point(mirror(.42,m),.04);rope(a.x,a.y);placeGoal(.72,.86);addStar(mirror(.55,m),.43);addStar(mirror(.67,m),.61);addStar(mirror(.72,m),.79);hintNode.textContent='Let it swing, then cut at the right moment';
+        }else if(family===1){
+          placeBall(.5,.30);const a=point(mirror(.24,m),.05),b=point(mirror(.76,m),.05);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.22,.84);addStar(mirror(.37,m),.44);addStar(mirror(.24,m),.62);addStar(mirror(.22,m),.78);hintNode.textContent='Choose the first vine carefully';
+        }else if(family===2){
+          placeBall(.28,.24,(m?-1:1)*1.8);const a=point(mirror(.28,m),.03);rope(a.x,a.y);placeGoal(.76,.86);const bp=point(mirror(.53,m),.56);bumpers.push({...bp,r:30});addStar(mirror(.42,m),.43);addStar(mirror(.59,m),.63);addStar(mirror(.75,m),.79);hintNode.textContent='Use the drum to change direction';
+        }else if(family===3){
+          placeBall(.48,.24);const a=point(mirror(.48,m),.03);rope(a.x,a.y);placeGoal(.78,.86);const fp=point(mirror(.42,m),.43);fans.push({x:fp.x-(m?110:0),y:fp.y,w:110,h:150,force:(m?-1:1)*310});addStar(mirror(.54,m),.46);addStar(mirror(.67,m),.62);addStar(mirror(.77,m),.79);hintNode.textContent='The wind keeps pushing after the cut';
+        }else if(family===4){
+          placeBall(.34,.21);const a=point(mirror(.34,m),.02);rope(a.x,a.y);placeGoal(.73,.22);const bp=point(mirror(.34,m),.52);bubbles.push({...bp,r:28,used:false});const fp=point(mirror(.39,m),.30);fans.push({x:fp.x-(m?125:0),y:fp.y,w:125,h:230,force:(m?-1:1)*155});addStar(mirror(.34,m),.43);addStar(mirror(.51,m),.34);addStar(mirror(.68,m),.25);hintNode.textContent='Catch the bubble, then tap it to pop';
+        }else{
+          placeBall(.5,.27);const a=point(mirror(.24,m),.04),b=point(mirror(.76,m),.04);rope(a.x,a.y);rope(b.x,b.y);placeGoal(.79,.84);const hz=point(mirror(.45,m),.69);hazards.push({x:hz.x-(m?150:0),y:hz.y,w:150,h:21});addStar(mirror(.38,m),.45);addStar(mirror(.63,m),.55);addStar(mirror(.78,m),.77);hintNode.textContent='Avoid the thorns below';
+        }
+        levelNode.textContent=String(level).padStart(3,'0');starMarks.forEach(s=>s.classList.remove('on'));if(setPlaying)state='playing';
+      }
+
+      function physicsStep(dt){
+        if(state!=='playing'||!ball.alive)return;
+        let ax=0,ay=ball.bubble?-235:490;
+        for(const fan of fans)if(ball.x>fan.x&&ball.x<fan.x+fan.w&&ball.y>fan.y&&ball.y<fan.y+fan.h)ax+=fan.force;
+        const vx=(ball.x-ball.px)*.998,vy=(ball.y-ball.py)*.998;ball.px=ball.x;ball.py=ball.y;ball.x+=vx+ax*dt*dt;ball.y+=vy+ay*dt*dt;
+
+        for(let iteration=0;iteration<7;iteration++)for(const r of ropes){if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy)||1;if(d>r.length){ball.x=r.ax+dx/d*r.length;ball.y=r.ay+dy/d*r.length}}
+
+        for(const bumper of bumpers){const dx=ball.x-bumper.x,dy=ball.y-bumper.y,d=Math.hypot(dx,dy)||1,min=ball.r+bumper.r;if(d<min){const nxv=dx/d,nyv=dy/d,vx2=ball.x-ball.px,vy2=ball.y-ball.py,dot=vx2*nxv+vy2*nyv;ball.x=bumper.x+nxv*min;ball.y=bumper.y+nyv*min;const rvx=(vx2-1.82*dot*nxv)*.92,rvy=(vy2-1.82*dot*nyv)*.92;ball.px=ball.x-rvx;ball.py=ball.y-rvy;burst(ball.x,ball.y,'#d7a556',5)}}
+        for(const bubble of bubbles)if(!bubble.used&&!ball.bubble&&Math.hypot(ball.x-bubble.x,ball.y-bubble.y)<ball.r+bubble.r){bubble.used=true;ball.bubble=true;ball.py=ball.y+1;showToast('Bubble caught Â· tap it to pop');tone(520,.08)}
+        for(const hazard of hazards)if(ball.x+ball.r>hazard.x&&ball.x-ball.r<hazard.x+hazard.w&&ball.y+ball.r>hazard.y&&ball.y-ball.r<hazard.y+hazard.h){failLevel('The thorns got the berry')}
+        stars.forEach((star,i)=>{if(!star.collected&&Math.hypot(ball.x-star.x,ball.y-star.y)<ball.r+star.r+2){star.collected=true;levelStars++;starMarks[i].classList.add('on');burst(star.x,star.y,'#d7a548',10);tone(640+i*90,.09)}})
+        if(Math.hypot(ball.x-goal.x,ball.y-goal.y)<ball.r+goal.r*.6&&!completeTimer){completeTimer=setTimeout(completeLevel,330);ball.alive=false;burst(goal.x,goal.y,'#df6e58',16);tone(340,.1);setTimeout(()=>tone(510,.14),65)}
+        if(ball.y>h+80||ball.x<-80||ball.x>w+80||ball.y<-100)failLevel(ball.bubble?'The bubble floated away':'The berry left the garden');
+        particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=120*dt;p.life-=dt*1.7});particles=particles.filter(p=>p.life>0);
+      }
+
+      function burst(x,y,color,count){for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*80;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color})}}
+      function cutRope(r){if(!r.active)return;r.active=false;burst((r.ax+ball.x)/2,(r.ay+ball.y)/2,'#557d69',7);showToast('Vine cut');tone(240,.05);if(navigator.vibrate)navigator.vibrate(8)}
+      function popBubble(){if(!ball.bubble)return;ball.bubble=false;ball.py=ball.y+1.5;burst(ball.x,ball.y,'#b9d8d8',12);showToast('Bubble popped');tone(460,.07)}
+
+      function completeLevel(){
+        completeTimer=0;if(state!=='playing'&&state!=='complete')return;state='complete';totalStars+=levelStars;localStorage.setItem('tether-stars',totalStars);localStorage.setItem('tether-level',level+1);
+        eyebrowNode.textContent=levelStars===3?'Perfect path Â· all stars collected':'Puzzle solved';titleNode.textContent=levelStars===3?'Perfect!':'Fed!';ledeNode.textContent=`Pip got the berry and you collected ${levelStars} of 3 stars. Puzzle ${level+1} is generated and waiting.`;primary.textContent='Next puzzle';savedNode.textContent=`${totalStars} stars collected Â· progress saved`;overlay.classList.remove('hidden');
+      }
+      function failLevel(message){if(state!=='playing')return;state='failed';ball.alive=false;eyebrowNode.textContent='Almost there';titleNode.textContent='Try again';ledeNode.textContent=`${message}. Every puzzle can be restarted as many times as you like.`;primary.textContent='Restart puzzle';savedNode.textContent='No lives lost Â· no penalty';setTimeout(()=>overlay.classList.remove('hidden'),280);tone(120,.16)}
+
+      function drawBackground(){
+        const colors=[['#f3e8d5','#d9d6ae'],['#f0dfca','#c7d7b0'],['#e8dfd0','#b9d0c6'],['#f1e2cf','#d9c3b4']][Math.floor((level-1)/6)%4];const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,colors[0]);g.addColorStop(1,colors[1]);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+        ctx.fillStyle='rgba(255,255,255,.16)';for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse((i*173+level*31)%w,h*.2+i*h*.18,w*.48,55+i*11,-.12,0,Math.PI*2);ctx.fill()}
+        ctx.strokeStyle='rgba(66,84,68,.08)';ctx.lineWidth=1;for(let y=120;y<h;y+=54){ctx.beginPath();ctx.moveTo(0,y+Math.sin(y)*4);ctx.bezierCurveTo(w*.3,y-14,w*.7,y+15,w,y-4);ctx.stroke()}
+      }
+      function drawAnchor(r){ctx.fillStyle='#36574d';ctx.beginPath();ctx.arc(r.ax,r.ay,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d6bd82';ctx.beginPath();ctx.arc(r.ax,r.ay,3,0,Math.PI*2);ctx.fill()}
+      function drawRopes(){for(const r of ropes){drawAnchor(r);if(!r.active)continue;const dx=ball.x-r.ax,dy=ball.y-r.ay,d=Math.hypot(dx,dy),segments=Math.max(4,Math.ceil(d/13));ctx.strokeStyle='#527462';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(r.ax,r.ay);for(let i=1;i<=segments;i++){const t=i/segments,x=r.ax+dx*t+Math.sin(t*Math.PI*5+r.sway)*1.4,y=r.ay+dy*t;ctx.lineTo(x,y)}ctx.stroke();ctx.strokeStyle='rgba(236,241,213,.35)';ctx.lineWidth=1;ctx.stroke()}}
+      function drawStars(time){for(const star of stars){if(star.collected)continue;const s=star.r+Math.sin(time*.004+star.pulse)*1.2;ctx.save();ctx.translate(star.x,star.y);ctx.rotate(time*.0003);ctx.fillStyle='#d6a548';ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?s:s*.46;const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.fill();ctx.restore()}}
+      function drawBumpers(){for(const b of bumpers){ctx.fillStyle='rgba(57,66,55,.15)';ctx.beginPath();ctx.ellipse(b.x+4,b.y+8,b.r*1.05,b.r*.45,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d9a654';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9c733b';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#f3d184';ctx.beginPath();ctx.arc(b.x-7,b.y-8,b.r*.26,0,Math.PI*2);ctx.fill()}}
+      function drawFans(time){for(const f of fans){ctx.fillStyle='rgba(109,151,153,.1)';ctx.strokeStyle='rgba(62,99,101,.2)';ctx.lineWidth=1;roundRect(f.x,f.y,f.w,f.h,18);ctx.fill();ctx.stroke();const dir=Math.sign(f.force);ctx.strokeStyle='rgba(54,103,104,.35)';ctx.lineWidth=2;for(let y=f.y+25;y<f.y+f.h;y+=35){const offset=(time*.04)%28;ctx.beginPath();for(let x=f.x-10;x<f.x+f.w+15;x+=28){const px=dir>0?x+offset:f.x+f.w-(x-f.x+offset);ctx.moveTo(px,y);ctx.lineTo(px+dir*10,y);ctx.lineTo(px+dir*6,y-4);ctx.moveTo(px+dir*10,y);ctx.lineTo(px+dir*6,y+4)}ctx.stroke()}}}
+      function drawBubbles(){for(const b of bubbles){if(b.used)continue;const g=ctx.createRadialGradient(b.x-8,b.y-9,2,b.x,b.y,b.r);g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(.2,'rgba(192,231,230,.25)');g.addColorStop(1,'rgba(92,159,160,.18)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.7)';ctx.stroke()}}
+      function drawHazards(){for(const z of hazards){ctx.fillStyle='#7d6c4e';ctx.fillRect(z.x,z.y+13,z.w,8);const count=Math.ceil(z.w/18);for(let i=0;i<count;i++){const x=z.x+i*z.w/count;ctx.fillStyle='#8b7755';ctx.beginPath();ctx.moveTo(x,z.y+14);ctx.lineTo(x+z.w/count*.5,z.y-5);ctx.lineTo(x+z.w/count,z.y+14);ctx.closePath();ctx.fill()}}}
+      function drawGoal(time){
+        ctx.save();ctx.translate(goal.x,goal.y);const bob=Math.sin(time*.003)*2;ctx.translate(0,bob);ctx.fillStyle='rgba(47,61,52,.15)';ctx.beginPath();ctx.ellipse(4,25,34,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6d8b70';ctx.beginPath();ctx.arc(0,2,30,0,Math.PI*2);ctx.fill();ctx.fillStyle='#88a383';ctx.beginPath();ctx.arc(-10,-9,15,0,Math.PI*2);ctx.arc(11,-8,15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4e8cd';ctx.beginPath();ctx.arc(-9,-4,5,0,Math.PI*2);ctx.arc(9,-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#273a3b';ctx.beginPath();ctx.arc(-9,-4,2.3,0,Math.PI*2);ctx.arc(9,-4,2.3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#293f3e';ctx.beginPath();ctx.ellipse(0,11,12,8,0,0,Math.PI*2);ctx.fill();ctx.restore();
+      }
+      function drawBall(){if(!ball)return;if(ball.bubble){ctx.fillStyle='rgba(171,224,225,.18)';ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r+14,0,Math.PI*2);ctx.fill();ctx.stroke()}ctx.save();ctx.translate(ball.x,ball.y);const angle=Math.atan2(ball.y-ball.py,ball.x-ball.px);ctx.rotate(angle*.12);ctx.fillStyle='#df6e58';ctx.beginPath();ctx.arc(0,0,ball.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f3a18e';ctx.beginPath();ctx.arc(-4,-5,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4f7864';ctx.beginPath();ctx.ellipse(4,-15,8,4,-.5,0,Math.PI*2);ctx.fill();ctx.restore()}
+      function drawSwipe(){if(!swipe)return;ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(swipe.startX,swipe.startY);ctx.lineTo(swipe.x,swipe.y);ctx.stroke()}
+      function roundRect(x,y,width,height,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,width,height,r):(ctx.rect(x,y,width,height))}
+      function draw(time){drawBackground();drawFans(time);drawHazards();drawStars(time);drawBubbles();drawBumpers();drawGoal(time);drawRopes();drawBall();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.5*p.life,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;drawSwipe()}
+
+      function segmentHit(a,b,c,d){const cross=(p,q,r)=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);const c1=cross(a,b,c),c2=cross(a,b,d),c3=cross(c,d,a),c4=cross(c,d,b);return((c1>0&&c2<0)||(c1<0&&c2>0))&&((c3>0&&c4<0)||(c3<0&&c4>0))}
+      function checkCut(x1,y1,x2,y2){for(const r of ropes)if(r.active&&segmentHit({x:x1,y:y1},{x:x2,y:y2},{x:r.ax,y:r.ay},{x:ball.x,y:ball.y}))cutRope(r)}
+
+      function loop(now){let frame=Math.min(.035,(now-last)/1000||0);last=now;accumulator+=frame;while(accumulator>=1/120){physicsStep(1/120);accumulator-=1/120}draw(now);requestAnimationFrame(loop)}
+      function nextOrRetry(){setupAudio();if(state==='complete')level++;setupLevel(true);overlay.classList.add('hidden');last=performance.now()}
+      function skipLevel(){if(state==='intro')return;level++;localStorage.setItem('tether-level',level);setupLevel(true);overlay.classList.add('hidden');showToast('New puzzle generated')}
+      function showToast(text){toast.textContent=text;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1050)}
+      function setupAudio(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}
+      function tone(freq,duration){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.value=.022;g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}
+
+      canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(state!=='playing')return;if(ball.bubble&&Math.hypot(e.clientX-ball.x,e.clientY-ball.y)<ball.r+28){popBubble();return}swipe={startX:e.clientX,startY:e.clientY,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY};canvas.setPointerCapture(e.pointerId)});
+      canvas.addEventListener('pointermove',e=>{if(!swipe)return;checkCut(swipe.lastX,swipe.lastY,e.clientX,e.clientY);swipe.lastX=e.clientX;swipe.lastY=e.clientY;swipe.x=e.clientX;swipe.y=e.clientY});
+      canvas.addEventListener('pointerup',()=>swipe=null);canvas.addEventListener('pointercancel',()=>swipe=null);
+      primary.addEventListener('click',nextOrRetry);document.getElementById('reset').addEventListener('click',()=>{if(state!=='intro'){setupLevel(true);overlay.classList.add('hidden');showToast('Puzzle restarted')}});document.getElementById('skip').addEventListener('click',skipLevel);
+      window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,160));document.addEventListener('visibilitychange',()=>last=performance.now());
+
+      resize();setupLevel(false);state='intro';requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
+
